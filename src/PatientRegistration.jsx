@@ -24,6 +24,7 @@ import ReviewInfo from "./components/FormSteps/ReviewInfo";
 function PatientRegistration() {
   const db = usePGlite();
   const [currentStep, setCurrentStep] = useState(1);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -52,38 +53,123 @@ function PatientRegistration() {
     { id: 6, title: "Review", icon: DocumentCheckIcon },
   ];
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const validatePersonalInfo = () => {
+    const errors = {};
+    if (!formData.first_name.trim()) errors.first_name = "First name is required";
+    if (!formData.last_name.trim()) errors.last_name = "Last name is required";
+    if (!formData.date_of_birth) errors.date_of_birth = "Date of birth is required";
+    if (!formData.gender) errors.gender = "Gender is required";
+    return errors;
   };
 
-  const isStepComplete = (step) => {
+  const validateContactInfo = () => {
+    const errors = {};
+    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!formData.phone) {
+      errors.phone = "Phone number is required";
+    } else if (!phoneRegex.test(formData.phone)) {
+      errors.phone = "Invalid phone number format";
+    }
+
+    if (formData.email && !emailRegex.test(formData.email)) {
+      errors.email = "Invalid email format";
+    }
+    return errors;
+  };
+
+  const validateAddressInfo = () => {
+    const errors = {};
+    if (!formData.street_address.trim()) errors.street_address = "Street address is required";
+    if (!formData.city.trim()) errors.city = "City is required";
+    if (!formData.state.trim()) errors.state = "State is required";
+    if (!formData.postal_code.trim()) errors.postal_code = "Postal code is required";
+    return errors;
+  };
+
+  const validateMedicalInfo = () => {
+    const errors = {};
+    if (!formData.medical_record_number.trim()) {
+      errors.medical_record_number = "Medical record number is required";
+    }
+    return errors;
+  };
+
+  const validateEmergencyInfo = () => {
+    const errors = {};
+    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+
+    if (!formData.emergency_contact_name.trim()) {
+      errors.emergency_contact_name = "Emergency contact name is required";
+    }
+    if (!formData.emergency_contact_phone) {
+      errors.emergency_contact_phone = "Emergency contact phone is required";
+    } else if (!phoneRegex.test(formData.emergency_contact_phone)) {
+      errors.emergency_contact_phone = "Invalid phone number format";
+    }
+    return errors;
+  };
+
+  const validateStep = (step) => {
     switch (step) {
       case 1:
-        return formData.first_name && formData.last_name && formData.date_of_birth && formData.gender;
+        return validatePersonalInfo();
       case 2:
-        return formData.phone;
+        return validateContactInfo();
       case 3:
-        return formData.street_address && formData.city && formData.state && formData.postal_code;
+        return validateAddressInfo();
       case 4:
-        return formData.medical_record_number;
+        return validateMedicalInfo();
       case 5:
-        return formData.emergency_contact_name && formData.emergency_contact_phone;
-      case 6:
-        return true;
+        return validateEmergencyInfo();
       default:
-        return false;
+        return {};
     }
   };
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear error for the field being changed
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const isStepComplete = (step) => {
+    const stepErrors = validateStep(step);
+    return Object.keys(stepErrors).length === 0;
+  };
+
   const handleStepClick = (stepId) => {
-    if (isStepComplete(stepId) || stepId === currentStep) {
+    if (stepId <= currentStep || isStepComplete(currentStep)) {
       setCurrentStep(stepId);
+    } else {
+      toast.error('Please complete the current step first');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all steps before submission
+    let allErrors = {};
+    for (let i = 1; i <= 5; i++) {
+      const stepErrors = validateStep(i);
+      allErrors = { ...allErrors, ...stepErrors };
+    }
+
+    if (Object.keys(allErrors).length > 0) {
+      setErrors(allErrors);
+      toast.error('Please fix all errors before submitting');
+      return;
+    }
+
     const loadingToast = toast.loading('Registering patient...');
     try {
       await db.query(
@@ -122,6 +208,7 @@ function PatientRegistration() {
         registered_by: "medblocks",
       });
       setCurrentStep(1);
+      setErrors({});
     } catch (error) {
       console.error("Error registering patient:", error);
       toast.error('Failed to register patient. Please try again.', {
@@ -131,18 +218,29 @@ function PatientRegistration() {
     }
   };
 
+  const handleNext = () => {
+    const stepErrors = validateStep(currentStep);
+    if (Object.keys(stepErrors).length === 0) {
+      setCurrentStep(currentStep + 1);
+      setErrors({});
+    } else {
+      setErrors(stepErrors);
+      toast.error('Please fix all errors before proceeding');
+    }
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <PersonalInfo formData={formData} handleChange={handleChange} />;
+        return <PersonalInfo formData={formData} handleChange={handleChange} errors={errors} />;
       case 2:
-        return <ContactInfo formData={formData} handleChange={handleChange} />;
+        return <ContactInfo formData={formData} handleChange={handleChange} errors={errors} />;
       case 3:
-        return <AddressInfo formData={formData} handleChange={handleChange} />;
+        return <AddressInfo formData={formData} handleChange={handleChange} errors={errors} />;
       case 4:
-        return <MedicalInfo formData={formData} handleChange={handleChange} />;
+        return <MedicalInfo formData={formData} handleChange={handleChange} errors={errors} />;
       case 5:
-        return <EmergencyInfo formData={formData} handleChange={handleChange} />;
+        return <EmergencyInfo formData={formData} handleChange={handleChange} errors={errors} />;
       case 6:
         return <ReviewInfo formData={formData} onEdit={setCurrentStep} />;
       default:
@@ -185,17 +283,8 @@ function PatientRegistration() {
           {currentStep < steps.length ? (
             <button
               type="button"
-              onClick={() => {
-                if (isStepComplete(currentStep)) {
-                  setCurrentStep(currentStep + 1);
-                } else {
-                  toast.error('Please fill in all required fields before proceeding.');
-                }
-              }}
-              className={`btn-primary ${
-                !isStepComplete(currentStep) ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-              disabled={!isStepComplete(currentStep)}
+              onClick={handleNext}
+              className="btn-primary"
             >
               Next
               <ChevronRightIcon className="w-5 h-5" />

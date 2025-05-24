@@ -1,7 +1,7 @@
 import React from "react";
 import { UserIcon } from "@heroicons/react/24/outline";
 
-function PersonalInfo({ formData, handleChange }) {
+function PersonalInfo({ formData, handleChange, errors }) {
   return (
     <div className="space-y-4">
       <div className="form-grid">
@@ -14,9 +14,12 @@ function PersonalInfo({ formData, handleChange }) {
             name="first_name"
             value={formData.first_name}
             onChange={handleChange}
-            className="input-field"
+            className={`input-field ${errors?.first_name ? 'border-red-500' : ''}`}
             required
           />
+          {errors?.first_name && (
+            <p className="mt-1 text-sm text-red-600">{errors.first_name}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -27,9 +30,12 @@ function PersonalInfo({ formData, handleChange }) {
             name="last_name"
             value={formData.last_name}
             onChange={handleChange}
-            className="input-field"
+            className={`input-field ${errors?.last_name ? 'border-red-500' : ''}`}
             required
           />
+          {errors?.last_name && (
+            <p className="mt-1 text-sm text-red-600">{errors.last_name}</p>
+          )}
         </div>
       </div>
       <div className="form-grid">
@@ -42,9 +48,12 @@ function PersonalInfo({ formData, handleChange }) {
             name="date_of_birth"
             value={formData.date_of_birth}
             onChange={handleChange}
-            className="input-field"
+            className={`input-field ${errors?.date_of_birth ? 'border-red-500' : ''}`}
             required
           />
+          {errors?.date_of_birth && (
+            <p className="mt-1 text-sm text-red-600">{errors.date_of_birth}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -54,7 +63,7 @@ function PersonalInfo({ formData, handleChange }) {
             name="gender"
             value={formData.gender}
             onChange={handleChange}
-            className="input-field"
+            className={`input-field ${errors?.gender ? 'border-red-500' : ''}`}
             required
           >
             <option value="">Select gender</option>
@@ -63,6 +72,9 @@ function PersonalInfo({ formData, handleChange }) {
             <option value="Non-binary">Non-binary</option>
             <option value="Other">Other</option>
           </select>
+          {errors?.gender && (
+            <p className="mt-1 text-sm text-red-600">{errors.gender}</p>
+          )}
         </div>
       </div>
     </div>
