@@ -142,6 +142,7 @@ function PatientRegistration() {
   };
 
   const isStepComplete = (step) => {
+    if (step === 6) return true; // Review step is always accessible once you reach it
     const stepErrors = validateStep(step);
     return Object.keys(stepErrors).length === 0;
   };
